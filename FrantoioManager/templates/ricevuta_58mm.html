@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ricevuta Molitura #{{ molitura.id }}</title>
+    <style>
+        /* Stili specifici per stampante termica 58mm */
+        @media print {
+            @page {
+                size: 58mm auto;
+                margin: 0;
+            }
+            
+            body {
+                margin: 0;
+                padding: 2mm;
+                font-family: 'Courier New', monospace;
+                font-size: 10px;
+                line-height: 1.2;
+                width: 54mm;
+                color: #000;
+                background: #fff;
+            }
+            
+            .no-print {
+                display: none !important;
+            }
+        }
+        
+        /* Stili per anteprima su schermo */
+        @media screen {
+            body {
+                max-width: 220px;
+                margin: 20px auto;
+                padding: 10px;
+                font-family: 'Courier New', monospace;
+                font-size: 12px;
+                line-height: 1.3;
+                border: 2px solid #ccc;
+                background: #f9f9f9;
+            }
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 8px;
+            border-bottom: 1px dashed #000;
+            padding-bottom: 4px;
+        }
+        
+        .title {
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+        
+        .subtitle {
+            font-size: 10px;
+            margin-bottom: 4px;
+        }
+        
+        .section {
+            margin: 6px 0;
+            padding: 2px 0;
+        }
+        
+        .section-title {
+            font-weight: bold;
+            border-bottom: 1px solid #000;
+            margin-bottom: 2px;
+            font-size: 11px;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 1px 0;
+            font-size: 10px;
+        }
+        
+        .cassoni-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 4px 0;
+            font-size: 10px;
+        }
+        
+        .cassoni-table th,
+        .cassoni-table td {
+            border: 1px solid #000;
+            padding: 1px 2px;
+            text-align: center;
+        }
+        
+        .cassoni-table th {
+            background: #000;
+            color: #fff;
+            font-weight: bold;
+        }
+        
+        .total-row {
+            font-weight: bold;
+            border-top: 2px solid #000;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 8px;
+            padding-top: 4px;
+            border-top: 1px dashed #000;
+            font-size: 9px;
+        }
+        
+        .separator {
+            text-align: center;
+            margin: 4px 0;
+            font-size: 12px;
+        }
+        
+        .print-button {
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 0 5px;
+        }
+        
+        .btn:hover {
+            background: #0056b3;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+        }
+        
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+    </style>
+</head>
+<body>
+    <!-- Pulsanti di controllo (non stampati) -->
+    <div class="print-button no-print">
+        <button class="btn" onclick="window.print()">
+            🖨️ Stampa Ricevuta
+        </button>
+        <button class="btn btn-secondary" onclick="window.close()">
+            ❌ Chiudi
+        </button>
+    </div>
+    
+    <!-- Contenuto ricevuta -->
+    <div class="header">
+        <div class="title">FRANTOIO OLEARIO</div>
+        <div class="subtitle">Ricevuta Molitura</div>
+        <div class="subtitle">N. {{ molitura.id }}</div>
+    </div>
+    
+    <div class="section">
+        <div class="section-title">CLIENTE</div>
+        <div style="font-weight: bold; text-align: center;">
+            {{ molitura.cliente.nome_completo }}
+        </div>
+        {% if molitura.cliente.telefono %}
+        <div class="info-row">
+            <span>Tel:</span>
+            <span>{{ molitura.cliente.telefono }}</span>
+        </div>
+        {% endif %}
+        {% if molitura.cliente.indirizzo %}
+        <div style="font-size: 9px; text-align: center;">
+            {{ molitura.cliente.indirizzo }}
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="section">
+        <div class="section-title">DATI MOLITURA</div>
+        <div class="info-row">
+            <span>Data/Ora:</span>
+            <span>{{ molitura.data_ora.strftime('%d/%m/%Y %H:%M') }}</span>
+        </div>
+        <div class="info-row">
+            <span>Sezione:</span>
+            <span>{{ molitura.sezione }}</span>
+        </div>
+        <div class="info-row">
+            <span>Stato:</span>
+            <span>{{ molitura.stato.upper() }}</span>
+        </div>
+    </div>
+    
+    {% if molitura.cassoni %}
+    <div class="section">
+        <div class="section-title">CASSONI</div>
+        <table class="cassoni-table">
+            <thead>
+                <tr>
+                    <th>N°</th>
+                    <th>Kg</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cassone in molitura.cassoni|sort(attribute='numero_cassone') %}
+                <tr>
+                    <td>{{ cassone.numero_cassone }}</td>
+                    <td>{{ cassone.quantita }}</td>
+                </tr>
+                {% endfor %}
+                <tr class="total-row">
+                    <td>TOT</td>
+                    <td>{{ molitura.quantita_totale }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+    
+    {% if molitura.note %}
+    <div class="section">
+        <div class="section-title">NOTE</div>
+        <div style="font-size: 9px; word-wrap: break-word;">
+            {{ molitura.note }}
+        </div>
+    </div>
+    {% endif %}
+    
+    <div class="separator">
+        ********************************
+    </div>
+    
+    <div class="footer">
+        <div>{{ datetime.now().strftime('%d/%m/%Y %H:%M') }}</div>
+        <div>Operatore: {{ current_user.username }}</div>
+        <div style="margin-top: 4px;">
+            Grazie per aver scelto<br>
+            il nostro frantoio!
+        </div>
+    </div>
+    
+    <div style="height: 20px;"></div> <!-- Spazio per il taglio -->
+    
+    <script>
+        // Auto-stampa quando si apre la finestra (opzionale)
+        // window.onload = function() {
+        //     setTimeout(function() {
+        //         window.print();
+        //     }, 500);
+        // };
+        
+        // Chiude la finestra dopo la stampa
+        window.onafterprint = function() {
+            // setTimeout(function() {
+            //     window.close();
+            // }, 1000);
+        };
+    </script>
+</body>
+</html>
