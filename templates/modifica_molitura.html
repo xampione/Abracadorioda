@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+
+{% block title %}Modifica Molitura - Frantoio Oleario{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="bi bi-pencil me-2"></i>
+            Modifica Molitura #{{ molitura.id }}
+        </h1>
+    </div>
+</div>
+
+<form method="POST" id="form-modifica-molitura">
+    <div class="row">
+        <!-- Sezione Cliente (solo visualizzazione) -->
+        <div class="col-lg-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h4 class="mb-0">Dati Cliente</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <strong>{{ molitura.cliente.nome_completo }}</strong><br>
+                        {% if molitura.cliente.telefono %}Tel: {{ molitura.cliente.telefono }}<br>{% endif %}
+                        {% if molitura.cliente.email %}Email: {{ molitura.cliente.email }}<br>{% endif %}
+                        {% if molitura.cliente.indirizzo %}Indirizzo: {{ molitura.cliente.indirizzo }}{% endif %}
+                    </div>
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Per modificare i dati del cliente, usa la sezione Clienti
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sezione Molitura -->
+        <div class="col-lg-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h4 class="mb-0">Dati Molitura</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="sezione" class="form-label">Sezione *</label>
+                            <select class="form-select" name="sezione" id="sezione" required>
+                                <option value="1" {% if molitura.sezione == 1 %}selected{% endif %}>Sezione 1</option>
+                                <option value="2" {% if molitura.sezione == 2 %}selected{% endif %}>Sezione 2</option>
+                                <option value="3" {% if molitura.sezione == 3 %}selected{% endif %}>Sezione 3</option>
+                                <option value="4" {% if molitura.sezione == 4 %}selected{% endif %}>Sezione 4</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="stato" class="form-label">Stato *</label>
+                            <select class="form-select" name="stato" id="stato" required>
+                                <option value="accettazione" {% if molitura.stato == 'accettazione' %}selected{% endif %}>Accettazione</option>
+                                <option value="in molitura" {% if molitura.stato == 'in molitura' %}selected{% endif %}>In Molitura</option>
+                                <option value="completa" {% if molitura.stato == 'completa' %}selected{% endif %}>Completa</option>
+                                <option value="archiviata" {% if molitura.stato == 'archiviata' %}selected{% endif %}>Archiviata</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Data e Ora -->
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="usa_ora_corrente" id="usa-ora-corrente">
+                            <label class="form-check-label" for="usa-ora-corrente">
+                                Aggiorna a data e ora corrente
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="row" id="data-ora-manuale">
+                        <div class="col-md-6 mb-3">
+                            <label for="data" class="form-label">Data</label>
+                            <input type="date" class="form-control" name="data" id="data" 
+                                   value="{{ molitura.data_ora.strftime('%Y-%m-%d') }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="ora" class="form-label">Ora</label>
+                            <input type="time" class="form-control" name="ora" id="ora"
+                                   value="{{ molitura.data_ora.strftime('%H:%M') }}">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="note-molitura" class="form-label">Note Molitura</label>
+                        <textarea class="form-control" name="note_molitura" id="note-molitura" rows="3">{{ molitura.note or '' }}</textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sezione Cassoni -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Cassoni</h4>
+                    <button type="button" class="btn btn-primary btn-sm" id="aggiungi-cassone">
+                        <i class="bi bi-plus"></i>
+                        Aggiungi Cassone
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="lista-cassoni">
+                        <!-- I cassoni esistenti verranno caricati qui -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pulsanti -->
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between">
+                <a href="{{ url_for('moliture') }}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left me-1"></i>
+                    Annulla
+                </a>
+                <button type="submit" class="btn btn-success btn-lg">
+                    <i class="bi bi-check-circle me-2"></i>
+                    Salva Modifiche
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Dati cassoni esistenti
+const cassoniEsistenti = {{ cassoni_data | tojson }};
+
+// Gestione data/ora
+document.getElementById('usa-ora-corrente').addEventListener('change', function() {
+    const dataOraManuale = document.getElementById('data-ora-manuale');
+    if (this.checked) {
+        dataOraManuale.style.display = 'none';
+        document.getElementById('data').required = false;
+        document.getElementById('ora').required = false;
+    } else {
+        dataOraManuale.style.display = 'block';
+        document.getElementById('data').required = true;
+        document.getElementById('ora').required = true;
+    }
+});
+
+// Gestione cassoni
+let contatoreCassoni = 0;
+
+document.getElementById('aggiungi-cassone').addEventListener('click', function() {
+    aggiungiCassone();
+});
+
+function aggiungiCassone(numero = '', quantita = '') {
+    contatoreCassoni++;
+    const cassoneDiv = document.createElement('div');
+    cassoneDiv.className = 'row mb-3 cassone-row';
+    cassoneDiv.innerHTML = `
+        <div class="col-md-4">
+            <label class="form-label">Numero Cassone</label>
+            <input type="number" class="form-control numero-cassone" min="1" value="${numero}" required>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Quantità (kg)</label>
+            <input type="number" class="form-control quantita-cassone" min="1" value="${quantita}" required>
+        </div>
+        <div class="col-md-4 d-flex align-items-end">
+            <button type="button" class="btn btn-danger btn-sm rimuovi-cassone">
+                <i class="bi bi-trash"></i>
+                Rimuovi
+            </button>
+        </div>
+    `;
+    
+    document.getElementById('lista-cassoni').appendChild(cassoneDiv);
+    
+    // Event listener per rimuovere cassone
+    cassoneDiv.querySelector('.rimuovi-cassone').addEventListener('click', function() {
+        cassoneDiv.remove();
+    });
+}
+
+// Carica cassoni esistenti
+cassoniEsistenti.forEach(cassone => {
+    aggiungiCassone(cassone.numero_cassone, cassone.quantita);
+});
+
+// Se non ci sono cassoni, aggiungi uno vuoto
+if (cassoniEsistenti.length === 0) {
+    aggiungiCassone();
+}
+
+// Validazione form
+document.getElementById('form-modifica-molitura').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    // Raccogli dati cassoni
+    const cassoniRows = document.querySelectorAll('.cassone-row');
+    if (cassoniRows.length === 0) {
+        alert('Aggiungi almeno un cassone.');
+        return;
+    }
+    
+    // Valida e prepara dati cassoni
+    const cassoniData = [];
+    let valido = true;
+    
+    cassoniRows.forEach(row => {
+        const numero = row.querySelector('.numero-cassone').value;
+        const quantita = row.querySelector('.quantita-cassone').value;
+        
+        if (!numero || !quantita || numero <= 0 || quantita <= 0) {
+            valido = false;
+            return;
+        }
+        
+        cassoniData.push(`${numero}:${quantita}`);
+    });
+    
+    if (!valido) {
+        alert('Verifica che tutti i cassoni abbiano numero e quantità validi.');
+        return;
+    }
+    
+    // Verifica numeri cassoni duplicati
+    const numeriCassoni = cassoniData.map(c => c.split(':')[0]);
+    const duplicati = numeriCassoni.filter((item, index) => numeriCassoni.indexOf(item) !== index);
+    if (duplicati.length > 0) {
+        alert(`Numeri cassoni duplicati: ${duplicati.join(', ')}`);
+        return;
+    }
+    
+    // Aggiungi hidden inputs per cassoni
+    cassoniData.forEach(cassone => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'cassoni';
+        input.value = cassone;
+        this.appendChild(input);
+    });
+    
+    // Sottometti form
+    this.submit();
+});
+</script>
+{% endblock %}
